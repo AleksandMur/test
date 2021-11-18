@@ -34,6 +34,7 @@ pipeline {
                         sh "docker build -t aleksandrmur/demo-app:$IMAGE_NAME ."
                         sh "echo $PASS | docker login -u $USER --password-stdin"
                         sh "docker push aleksandrmur/demo-app:$IMAGE_NAME"
+                    }  
                 }
             }  
         }
@@ -43,7 +44,6 @@ pipeline {
                 echo 'deploy the application ...'
             }  
         } 
-    }
-      
+    }      
 }  
   
