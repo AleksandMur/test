@@ -1,36 +1,69 @@
 pipeline {
   
     agent any
-    parameters {
-        choice(name : "VERSION", choices: ['1.1.0', '1.2.0', '1.3.0'], description: '')
-        booleanParam(name: 'executeTests', defaultValue: true, description: '')
+    tools {
+       maven 'maven'
     }
     stages {
-    
-        stage("build") {
-       
+        stage("increment version") {
             steps {
-                echo 'building the application ...'
+                script {
+                    sh 'mvn build-helper:parse-version versions:set \
+                    -DnewVersion=\\\${parsedVersion.majorVersion}.\\\${parsedVersion.minorVersion}.\\\${parsedVersion.nextIncrementalVersion} \
+                    versions:commit'
+                    def matcher = readFile('pom.xml') =~ '<version>(.+)</version>'
+                    def version = matcher[0][1]
+                    env.IMAGE_NAME = "$version-$BUILD_NUMBER"
+                }    
+            }  
+        }        
+        
+        stage("build jar") {      
+            steps {
+                script {
+                    echo 'building the image ...'
+                    sh 'mvn package'
+                }    
             }  
         }
-        stage("test") {
-           when {
-               expression {
-                   params.executeTests
-               }
-           }
+        stage("build image") {
             steps {
-                echo 'test the application ...'
+                script {
+                    echo "test the application ..."
+                    withCredentials([usernamePassword(credentialsId: 'docker-login', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
+                        sh "docker build -t aleksandrmur/demo-app:$IMAGE_NAME ."
+                        sh "echo $PASS | docker login -u $USER --password-stdin"
+                        sh "docker push aleksandrmur/demo-app:$IMAGE_NAME"
+                    }  
+                }
             }  
         }
         stage("deploy") {
        
             steps {
                 echo 'deploy the application ...'
-                echo "deploy version ${params.VERSION}"
             }  
-        } 
-    }
-      
+        }
+        stage('commit version update') {
+            steps {
+                script {
+                    withCredentials([usernamePassword(credentialsId: 'github-token', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
+                        sh 'git config --global user.email "jenkins@example.com"'
+                        sh 'git config --global user.name "jenkins"'
+
+                        sh 'git status'
+                        sh 'git branch'
+                        sh 'git config --list'
+
+                        sh "git remote set-url origin https://${PASS}@github.com/AleksandMur/test.git"
+                        sh 'git add .'
+                        sh 'git commit -m "ci: version bump"'
+                        sh 'git push origin HEAD:branchthree'
+                    }
+                }
+            }
+        }
+
+    }      
 }  
   
