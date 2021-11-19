@@ -55,7 +55,7 @@ pipeline {
                         sh 'git branch'
                         sh 'git config --list'
 
-                        sh "git remote set-url origin https//${USER}:${PASS}@github.com/AleksandMur/test.git"
+                        sh "git remote set-url origin git@github.com:AleksandMur/test.git"
                         sh 'git add .'
                         sh 'git commit -m "ci: version bump"'
                         sh 'git push origin HEAD:branchthree'
