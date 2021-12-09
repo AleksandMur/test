@@ -5,7 +5,7 @@ pipeline {
        maven 'maven'
     }
     stages {
-        stage("increment version") {
+        stage("increment versiion") {
             steps {
                 script {
                     sh 'mvn build-helper:parse-version versions:set \
